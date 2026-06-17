@@ -12,6 +12,9 @@ apt_arch="${APT_ARCH:-${TERMUXD_RUNTIME_ABI}}"
 apt_suite="${APT_SUITE:-stable}"
 apt_component="${APT_COMPONENT:-main}"
 
+export GIT_TERMINAL_PROMPT=0
+export GCM_INTERACTIVE=never
+
 if [[ -z "${pages_remote_url}" ]]; then
 	echo "PAGES_REMOTE_URL must point to the independent GitHub Pages package repository" >&2
 	exit 1

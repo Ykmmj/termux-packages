@@ -68,6 +68,13 @@ for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 	}
 done
 
+for pages_script in init-apt-pages.sh publish-apt-pages.sh; do
+	grep -q 'GIT_TERMINAL_PROMPT=0' "${termuxd_dir}/${pages_script}" || {
+		echo "${pages_script} must fail fast instead of hanging on Git authentication prompts" >&2
+		exit 1
+	}
+done
+
 tmp_root="$(mktemp -d)"
 trap 'rm -rf "${tmp_root}"' EXIT
 source_repo="${tmp_root}/source"
