@@ -28,6 +28,7 @@ checksum*
 /output/
 
 # Generated termuxd runtime/build artifacts.
+/.tmp-pages/
 /build/
 /out/
 
