@@ -59,6 +59,11 @@ require_equal "${TERMUXD_REBUILD_ROOT_PACKAGES}" "true" "TERMUXD_REBUILD_ROOT_PA
 require_equal "${TERMUXD_GLIBC_BUILDER_IMAGE_NAME}" "ghcr.io/termux/package-builder-cgct" "TERMUXD_GLIBC_BUILDER_IMAGE_NAME"
 require_equal "${TERMUXD_RESET_GLIBC_CONTAINER}" "false" "TERMUXD_RESET_GLIBC_CONTAINER"
 
+if grep -q 'TERMUXD_CGCT_PATH' "${termuxd_dir}/config.sh"; then
+	echo "termuxd config must not redefine CGCT_DIR; upstream CGCT stays at /data/data/com.termux/cgct" >&2
+	exit 1
+fi
+
 require_equal \
 	"$(termux_package__add_prefix_glibc_to_package_list 'glibc (= 2.42)')" \
 	"glibc (= 2.42)" \
