@@ -55,7 +55,7 @@ require_equal "${TERMUXD_BUILD_JOBS}" "4" "TERMUXD_BUILD_JOBS"
 require_equal "${TERMUXD_USE_DOCKER}" "true" "TERMUXD_USE_DOCKER"
 require_equal "${TERMUXD_REBUILD_ROOT_PACKAGES}" "true" "TERMUXD_REBUILD_ROOT_PACKAGES"
 require_equal "${TERMUXD_GLIBC_BUILDER_IMAGE_NAME}" "ghcr.io/termux/package-builder-cgct" "TERMUXD_GLIBC_BUILDER_IMAGE_NAME"
-require_equal "${TERMUXD_RESET_GLIBC_CONTAINER}" "true" "TERMUXD_RESET_GLIBC_CONTAINER"
+require_equal "${TERMUXD_RESET_GLIBC_CONTAINER}" "false" "TERMUXD_RESET_GLIBC_CONTAINER"
 
 for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 	grep -q 'TERMUXD_INVOCATION_DIR="${PWD}"' "${termuxd_dir}/${build_script}" || {
@@ -81,7 +81,7 @@ grep -q 'TERMUX_BUILDER_IMAGE_NAME="${TERMUXD_GLIBC_BUILDER_IMAGE_NAME}"' "${ter
 	exit 1
 }
 grep -q 'TERMUXD_RESET_GLIBC_CONTAINER' "${termuxd_dir}/build-glibc-packages.sh" || {
-	echo "build-glibc-packages.sh must reset the generated-workdir glibc container by default" >&2
+	echo "build-glibc-packages.sh must expose an explicit glibc container reset switch" >&2
 	exit 1
 }
 

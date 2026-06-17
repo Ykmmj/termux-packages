@@ -33,7 +33,7 @@ fi
 : "${TERMUXD_CONTAINER_NAME:=termuxd-package-builder}"
 : "${TERMUXD_GLIBC_CONTAINER_NAME:=termuxd-glibc-package-builder}"
 : "${TERMUXD_GLIBC_BUILDER_IMAGE_NAME:=ghcr.io/termux/package-builder-cgct}"
-: "${TERMUXD_RESET_GLIBC_CONTAINER:=true}"
+: "${TERMUXD_RESET_GLIBC_CONTAINER:=false}"
 : "${TERMUXD_OUTPUT_DIR:=${TERMUXD_REPO_ROOT}/output}"
 : "${TERMUXD_DIST_DIR:=${TERMUXD_REPO_ROOT}/out/termuxd-runtime-${TERMUXD_RUNTIME_ABI}}"
 : "${TERMUXD_GLIBC_PACKAGES_SOURCE_DIR:=${TERMUXD_REPO_ROOT}/../glibc-packages}"
