@@ -69,30 +69,46 @@ git -C "${TERMUXD_REPO_ROOT}" archive HEAD "${build_system_paths[@]}" \
 
 cd "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}"
 if [[ ${#seed_packages[@]} -gt 0 ]]; then
-	echo "Seeding glibc build prefix from APT repo: ${TERMUXD_GLIBC_APT_REPO_URL}"
-	if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
-		termuxd_prepare_docker_env_args
-		env \
-			CONTAINER_NAME="${TERMUXD_GLIBC_CONTAINER_NAME}" \
-			TERMUX_DOCKER_RUN_EXTRA_ARGS="${TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS}" \
-			TERMUX_DOCKER_EXEC_EXTRA_ARGS="${TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS}" \
-			./scripts/run-docker.sh \
-			bash scripts/termuxd/seed-glibc-apt-build-prefix.sh "${seed_packages[@]}"
+	if termuxd_should_seed_glibc_prefix \
+		"${TERMUXD_GLIBC_APT_REPO_URL}" \
+		"${TERMUXD_GLIBC_APT_REPO_DISTRIBUTION}" \
+		"${TERMUXD_GLIBC_APT_REPO_COMPONENT}" \
+		"${TERMUXD_RUNTIME_ABI}"; then
+		echo "Seeding glibc build prefix from APT repo: ${TERMUXD_GLIBC_APT_REPO_URL}"
+		if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
+			termuxd_prepare_docker_env_args
+			env \
+				CONTAINER_NAME="${TERMUXD_GLIBC_CONTAINER_NAME}" \
+				TERMUX_DOCKER_RUN_EXTRA_ARGS="${TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS}" \
+				TERMUX_DOCKER_EXEC_EXTRA_ARGS="${TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS}" \
+				./scripts/run-docker.sh \
+				bash scripts/termuxd/seed-glibc-apt-build-prefix.sh "${seed_packages[@]}"
+		else
+			SEED_ROOT_DIR="/" \
+			TERMUX_BUILT_PACKAGES_DIRECTORY="/data/data/.built-packages" \
+				bash scripts/termuxd/seed-glibc-apt-build-prefix.sh "${seed_packages[@]}"
+		fi
 	else
-		SEED_ROOT_DIR="/" \
-		TERMUX_BUILT_PACKAGES_DIRECTORY="/data/data/.built-packages" \
-			bash scripts/termuxd/seed-glibc-apt-build-prefix.sh "${seed_packages[@]}"
+		echo "Skipping glibc build prefix seed; remote package index is empty or unavailable: ${TERMUXD_GLIBC_APT_REPO_URL}"
 	fi
 fi
 
-args=(-a "${TERMUXD_RUNTIME_ABI}")
-if [[ -n "${TERMUXD_BUILD_PACKAGE_MODE}" ]]; then
-	args+=("${TERMUXD_BUILD_PACKAGE_MODE}")
-fi
+build_package_args=()
+termuxd_resolve_build_package_args \
+	"${TERMUXD_GLIBC_APT_REPO_URL}" \
+	"${TERMUXD_GLIBC_APT_REPO_DISTRIBUTION}" \
+	build_package_args
+args=(-a "${TERMUXD_RUNTIME_ABI}" "${build_package_args[@]}")
 args+=(--format debian --library glibc -L)
 
 echo "Building termuxd glibc packages: ${glibc_packages[*]}"
 echo "CGCT_APP_PREFIX target: ${TERMUXD_GLIBC_PREFIX_PATH}"
+echo "Requested build package mode: ${TERMUXD_BUILD_PACKAGE_MODE}"
+if [[ ${#build_package_args[@]} -gt 0 ]]; then
+	echo "Resolved build package args: ${build_package_args[*]}"
+else
+	echo "Resolved build package args: <none>"
+fi
 
 if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
 	termuxd_prepare_docker_env_args

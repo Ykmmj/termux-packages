@@ -21,13 +21,20 @@ fi
 cd "${TERMUXD_REPO_ROOT}"
 bash scripts/termuxd-check-config.sh
 
-args=(-a "${TERMUXD_RUNTIME_ABI}")
-if [[ -n "${TERMUXD_BUILD_PACKAGE_MODE}" ]]; then
-	args+=("${TERMUXD_BUILD_PACKAGE_MODE}")
-fi
+build_package_args=()
+termuxd_resolve_build_package_args \
+	"${TERMUXD_BIONIC_APT_REPO_URL}" \
+	"${TERMUXD_BIONIC_APT_REPO_DISTRIBUTION}" \
+	build_package_args
+args=(-a "${TERMUXD_RUNTIME_ABI}" "${build_package_args[@]}")
 
 echo "Building termuxd bionic packages: ${build_packages[*]}"
-echo "Build mode: ${TERMUXD_BUILD_PACKAGE_MODE:-<none>}"
+echo "Requested build package mode: ${TERMUXD_BUILD_PACKAGE_MODE}"
+if [[ ${#build_package_args[@]} -gt 0 ]]; then
+	echo "Resolved build package args: ${build_package_args[*]}"
+else
+	echo "Resolved build package args: <none>"
+fi
 
 if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
 	termuxd_prepare_docker_env_args

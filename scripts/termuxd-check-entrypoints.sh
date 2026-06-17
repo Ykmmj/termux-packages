@@ -28,6 +28,7 @@ for script_name in \
 	config.sh \
 	build-bionic-packages.sh \
 	build-glibc-packages.sh \
+	init-apt-pages.sh \
 	package-runtime.sh \
 	publish-apt-pages.sh \
 	publish-bionic-apt-pages.sh \
@@ -47,6 +48,8 @@ require_equal "${TERMUXD_BIONIC_ROOT_PACKAGES}" "apt bash" "TERMUXD_BIONIC_ROOT_
 require_equal "${TERMUXD_BIONIC_BUILD_PACKAGES}" "apt bash" "TERMUXD_BIONIC_BUILD_PACKAGES"
 require_equal "${TERMUXD_GLIBC_PACKAGES}" "glibc-runner" "TERMUXD_GLIBC_PACKAGES"
 require_equal "${TERMUXD_GLIBC_SEED_PACKAGES}" "linux-api-headers-glibc glibc" "TERMUXD_GLIBC_SEED_PACKAGES"
+require_equal "${TERMUXD_BUILD_PACKAGE_MODE}" "auto" "TERMUXD_BUILD_PACKAGE_MODE"
+require_equal "${TERMUXD_GLIBC_SEED_MODE}" "auto" "TERMUXD_GLIBC_SEED_MODE"
 require_equal "${TERMUXD_USE_DOCKER}" "true" "TERMUXD_USE_DOCKER"
 require_equal "${TERMUXD_REBUILD_ROOT_PACKAGES}" "true" "TERMUXD_REBUILD_ROOT_PACKAGES"
 
@@ -72,9 +75,60 @@ packages_dir="${tmp_root}/packages"
 remote_repo="${tmp_root}/remote.git"
 mkdir -p "${source_repo}" "${packages_dir}"
 
+empty_repo="${tmp_root}/empty-repo"
+ready_repo="${tmp_root}/ready-repo"
+mkdir -p "${empty_repo}" "${ready_repo}/dists/stable/main/binary-aarch64"
+touch "${ready_repo}/dists/stable/Release"
+cat > "${ready_repo}/dists/stable/main/binary-aarch64/Packages" <<'EOF'
+Package: apt
+Version: 1.0
+Architecture: aarch64
+Filename: pool/main/apt_1.0_aarch64.deb
+EOF
+
+resolved_args=()
+termuxd_resolve_build_package_args "file://${ready_repo}" "stable" resolved_args
+require_equal "${resolved_args[*]}" "-I" "auto build mode with available remote repo"
+
+resolved_args=()
+termuxd_resolve_build_package_args "file://${empty_repo}" "stable" resolved_args
+require_equal "${resolved_args[*]}" "" "auto build mode with empty remote repo"
+
+termuxd_should_seed_glibc_prefix "file://${ready_repo}" "stable" "main" "aarch64" || {
+	echo "glibc seed should run when the remote Packages index is available" >&2
+	exit 1
+}
+
+if termuxd_should_seed_glibc_prefix "file://${empty_repo}" "stable" "main" "aarch64"; then
+	echo "glibc seed should skip when the remote Packages index is unavailable" >&2
+	exit 1
+fi
+
 git -C "${source_repo}" init -q
 git -C "${source_repo}" -c user.name=termuxd -c user.email=termuxd@example.invalid commit --allow-empty -q -m init
 git -C "${source_repo}" init -q --bare "${remote_repo}"
+
+PAGES_REMOTE_URL="${remote_repo}" \
+PAGES_TMPDIR="${tmp_root}/tmp-pages" \
+	"${termuxd_dir}/init-apt-pages.sh" >/dev/null
+
+initialized="${tmp_root}/initialized"
+git clone --branch gh-pages --single-branch "${remote_repo}" "${initialized}" >/dev/null 2>&1
+for repo_path in apt/bionic apt/glibc; do
+	[[ -f "${initialized}/${repo_path}/dists/stable/Release" ]] || {
+		echo "missing initialized Release: ${repo_path}" >&2
+		exit 1
+	}
+	empty_index="${initialized}/${repo_path}/dists/stable/main/binary-aarch64/Packages"
+	[[ -f "${empty_index}" ]] || {
+		echo "missing initialized Packages index: ${repo_path}" >&2
+		exit 1
+	}
+	if grep -q '^Package: ' "${empty_index}"; then
+		echo "initialized ${repo_path} should not contain package records" >&2
+		exit 1
+	fi
+done
 
 make_fake_deb() {
 	local output_dir="$1"

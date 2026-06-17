@@ -24,7 +24,8 @@ fi
 : "${TERMUXD_BIONIC_BUILD_PACKAGES:=${TERMUXD_BIONIC_ROOT_PACKAGES}}"
 : "${TERMUXD_GLIBC_PACKAGES:=glibc-runner}"
 : "${TERMUXD_GLIBC_SEED_PACKAGES:=linux-api-headers-glibc glibc}"
-: "${TERMUXD_BUILD_PACKAGE_MODE:=-I}"
+: "${TERMUXD_BUILD_PACKAGE_MODE:=auto}"
+: "${TERMUXD_GLIBC_SEED_MODE:=auto}"
 : "${TERMUXD_USE_DOCKER:=true}"
 : "${TERMUXD_REBUILD_ROOT_PACKAGES:=true}"
 : "${TERMUXD_CONTAINER_NAME:=termuxd-package-builder}"
@@ -56,6 +57,7 @@ export TERMUXD_BIONIC_BUILD_PACKAGES
 export TERMUXD_GLIBC_PACKAGES
 export TERMUXD_GLIBC_SEED_PACKAGES
 export TERMUXD_BUILD_PACKAGE_MODE
+export TERMUXD_GLIBC_SEED_MODE
 export TERMUXD_USE_DOCKER
 export TERMUXD_REBUILD_ROOT_PACKAGES
 export TERMUXD_CONTAINER_NAME
@@ -110,4 +112,88 @@ termuxd_clear_built_markers() {
 	for package_name in "$@"; do
 		rm -f "/data/data/.built-packages/${package_name}"
 	done
+}
+
+termuxd_package_index_url() {
+	local repo_url="$1"
+	local distribution="$2"
+	local component="${3:-${TERMUXD_BIONIC_APT_REPO_COMPONENT}}"
+	local abi="${4:-${TERMUXD_RUNTIME_ABI}}"
+
+	printf '%s/dists/%s/%s/binary-%s/Packages\n' \
+		"${repo_url%/}" \
+		"${distribution}" \
+		"${component}" \
+		"${abi}"
+}
+
+termuxd_read_url() {
+	local url="$1"
+
+	case "${url}" in
+		file://*) cat -- "${url#file://}" ;;
+		http://*|https://*) curl -fsSL --retry 1 --connect-timeout 10 --max-time 30 "${url}" ;;
+		*) cat -- "${url}" ;;
+	esac
+}
+
+termuxd_remote_package_index_has_records() {
+	local repo_url="$1"
+	local distribution="$2"
+	local component="${3:-${TERMUXD_BIONIC_APT_REPO_COMPONENT}}"
+	local abi="${4:-${TERMUXD_RUNTIME_ABI}}"
+	local index_url
+
+	index_url="$(termuxd_package_index_url "${repo_url}" "${distribution}" "${component}" "${abi}")"
+	termuxd_read_url "${index_url}" 2>/dev/null | awk '/^Package: / { found = 1; exit } END { exit found ? 0 : 1 }'
+}
+
+termuxd_resolve_build_package_args() {
+	local repo_url="$1"
+	local distribution="$2"
+	local output_var="$3"
+	local mode="${TERMUXD_BUILD_PACKAGE_MODE}"
+	local -a termuxd_resolved_args=()
+
+	case "${mode}" in
+		auto)
+			if termuxd_remote_package_index_has_records "${repo_url}" "${distribution}"; then
+				termuxd_resolved_args=(-I)
+				echo "Remote APT package index has records; build-package will reuse packages with -I: ${repo_url}"
+			else
+				echo "Remote APT package index is empty or unavailable; build-package will build dependencies locally: ${repo_url}"
+			fi
+			;;
+		none|false|off|local)
+			;;
+		*)
+			read -r -a termuxd_resolved_args <<< "${mode}"
+			;;
+	esac
+
+	local -n output_args="${output_var}"
+	output_args=("${termuxd_resolved_args[@]}")
+}
+
+termuxd_should_seed_glibc_prefix() {
+	local repo_url="$1"
+	local distribution="$2"
+	local component="$3"
+	local abi="$4"
+
+	case "${TERMUXD_GLIBC_SEED_MODE}" in
+		auto)
+			termuxd_remote_package_index_has_records "${repo_url}" "${distribution}" "${component}" "${abi}"
+			;;
+		always|true|force)
+			return 0
+			;;
+		never|false|none|off|skip)
+			return 1
+			;;
+		*)
+			echo "Unknown TERMUXD_GLIBC_SEED_MODE: ${TERMUXD_GLIBC_SEED_MODE}" >&2
+			return 1
+			;;
+	esac
 }
