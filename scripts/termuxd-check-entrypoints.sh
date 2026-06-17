@@ -87,6 +87,15 @@ for pages_script in init-apt-pages.sh publish-apt-pages.sh; do
 	}
 done
 
+grep -q 'etc/profile.d/00-termuxd.sh' "${termuxd_dir}/package-runtime.sh" || {
+	echo "package-runtime.sh must install a termuxd profile environment" >&2
+	exit 1
+}
+grep -q 'runtime/termuxd-shell' "${termuxd_dir}/package-runtime.sh" || {
+	echo "package-runtime.sh must install a termuxd shell launcher" >&2
+	exit 1
+}
+
 tmp_root="$(mktemp -d)"
 trap 'rm -rf "${tmp_root}"' EXIT
 source_repo="${tmp_root}/source"

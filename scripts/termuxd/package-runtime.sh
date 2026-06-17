@@ -181,6 +181,7 @@ stage_runtime_prefix="${stage_dir}/runtime/${prefix_under_runtime}"
 mkdir -p \
 	"${stage_runtime_prefix}/etc/apt/apt.conf.d" \
 	"${stage_runtime_prefix}/etc/apt/sources.list.d" \
+	"${stage_runtime_prefix}/etc/profile.d" \
 	"${stage_runtime_prefix}/var/lib/apt/lists/partial" \
 	"${stage_runtime_prefix}/var/cache/apt/archives/partial" \
 	"${stage_runtime_prefix}/var/log/apt" \
@@ -197,6 +198,40 @@ Dir::Cache "${TERMUXD_CACHE_PATH}/apt";
 Dir::Cache::archives "${TERMUXD_CACHE_PATH}/apt/archives";
 Acquire::Languages "none";
 EOF
+cat > "${stage_runtime_prefix}/etc/profile.d/00-termuxd.sh" <<EOF
+export TERMUXD_ROOT="${TERMUXD_ROOT_PATH}"
+export TERMUXD_RUNTIME="${TERMUXD_RUNTIME_PATH}"
+export PREFIX="${TERMUXD_PREFIX_PATH}"
+export TERMUX_PREFIX="${TERMUXD_PREFIX_PATH}"
+export TMPDIR="${TERMUXD_PREFIX_PATH}/tmp"
+export HOME="\${HOME:-${TERMUXD_RUNTIME_PATH}/home}"
+case ":\${PATH:-}:" in
+	*:"${TERMUXD_PREFIX_PATH}/bin":*) ;;
+	*) export PATH="${TERMUXD_PREFIX_PATH}/bin:\${PATH:-/system/bin}" ;;
+esac
+EOF
+
+cat > "${stage_dir}/runtime/termuxd-shell" <<EOF
+#!/system/bin/sh
+export TERMUXD_ROOT="${TERMUXD_ROOT_PATH}"
+export TERMUXD_RUNTIME="${TERMUXD_RUNTIME_PATH}"
+export PREFIX="${TERMUXD_PREFIX_PATH}"
+export TERMUX_PREFIX="${TERMUXD_PREFIX_PATH}"
+export TMPDIR="${TERMUXD_PREFIX_PATH}/tmp"
+export HOME="\${HOME:-${TERMUXD_RUNTIME_PATH}/home}"
+case ":\${PATH:-}:" in
+	*:"${TERMUXD_PREFIX_PATH}/bin":*) ;;
+	*) export PATH="${TERMUXD_PREFIX_PATH}/bin:\${PATH:-/system/bin}" ;;
+esac
+mkdir -p "\${HOME}" "\${TMPDIR}" "${TERMUXD_CACHE_PATH}/apt/archives/partial" 2>/dev/null || true
+
+if [ "\$#" -eq 0 ]; then
+	exec "${TERMUXD_PREFIX_PATH}/bin/bash" -l
+fi
+
+exec "${TERMUXD_PREFIX_PATH}/bin/bash" -lc "\$*"
+EOF
+chmod 755 "${stage_dir}/runtime/termuxd-shell"
 
 if [[ ! -e "${stage_runtime_prefix}/bin/sh" && -x "${stage_runtime_prefix}/bin/bash" ]]; then
 	ln -s bash "${stage_runtime_prefix}/bin/sh"
