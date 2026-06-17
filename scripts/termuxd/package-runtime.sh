@@ -180,6 +180,7 @@ prefix_under_runtime="${TERMUXD_PREFIX_PATH#${TERMUXD_RUNTIME_PATH}/}"
 stage_runtime_prefix="${stage_dir}/runtime/${prefix_under_runtime}"
 mkdir -p \
 	"${stage_runtime_prefix}/etc/apt/apt.conf.d" \
+	"${stage_runtime_prefix}/etc/apt/preferences.d" \
 	"${stage_runtime_prefix}/etc/apt/sources.list.d" \
 	"${stage_runtime_prefix}/etc/profile.d" \
 	"${stage_runtime_prefix}/var/lib/apt/lists/partial" \
