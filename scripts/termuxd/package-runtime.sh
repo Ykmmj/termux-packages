@@ -184,9 +184,6 @@ mkdir -p \
 cat > "${stage_dir}/runtime/home/.bashrc" <<'EOF'
 # termuxd user bashrc
 
-if [ -n "${TERMUXD_USER_BASHRC_SOURCED:-}" ]; then
-	return 0
-fi
 export TERMUXD_USER_BASHRC_SOURCED=1
 
 export HISTFILE="${HISTFILE:-${HOME}/.bash_history}"

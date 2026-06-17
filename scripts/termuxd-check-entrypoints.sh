@@ -165,6 +165,10 @@ if grep -qi 'opencode' "${termuxd_dir}/package-runtime.sh"; then
 	echo "package-runtime.sh default shell config must not include opencode-specific content" >&2
 	exit 1
 fi
+if grep -A8 'runtime/home/.bashrc' "${termuxd_dir}/package-runtime.sh" | grep -q 'return 0'; then
+	echo "default .bashrc must not return early when sourced repeatedly" >&2
+	exit 1
+fi
 
 tmp_root="$(mktemp -d)"
 trap 'rm -rf "${tmp_root}"' EXIT
