@@ -184,7 +184,9 @@ fi
 if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
 	termuxd_prepare_docker_env_args
 	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS "--env CGCT_APP_PREFIX=${TERMUXD_GLIBC_PREFIX_PATH}"
+	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS "--env TERMUXD_ALLOW_UNSIGNED_REPO=${TERMUXD_ALLOW_UNSIGNED_REPO}"
 	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS "--env CGCT_APP_PREFIX=${TERMUXD_GLIBC_PREFIX_PATH}"
+	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS "--env TERMUXD_ALLOW_UNSIGNED_REPO=${TERMUXD_ALLOW_UNSIGNED_REPO}"
 	if [[ "${TERMUXD_REBUILD_ROOT_PACKAGES}" == "true" ]]; then
 		env \
 			CONTAINER_NAME="${TERMUXD_GLIBC_CONTAINER_NAME}" \
@@ -210,4 +212,5 @@ fi
 termuxd_clear_built_markers "${glibc_packages[@]}"
 exec env \
 	CGCT_APP_PREFIX="${TERMUXD_GLIBC_PREFIX_PATH}" \
+	TERMUXD_ALLOW_UNSIGNED_REPO="${TERMUXD_ALLOW_UNSIGNED_REPO}" \
 	./build-package.sh "${args[@]}" "${glibc_packages[@]}"

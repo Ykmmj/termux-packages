@@ -37,12 +37,19 @@ termux_get_repo_files() {
 				delay=30
 			fi
 			for attempt in {1..6}; do
-				if termux_download "${RELEASE_FILE_URL}" "${RELEASE_FILE}" SKIP_CHECKSUM \
-						&& termux_download "${RELEASE_FILE_SIG_URL}" "${RELEASE_FILE}.gpg" SKIP_CHECKSUM; then
-					if ! gpg --verify "${RELEASE_FILE}.gpg" "${RELEASE_FILE}"; then
-						echo "GPG verification failed, probably we downloaded corrupted metadata. Retrying in $delay seconds."
-						sleep "$delay"
-						continue
+				if termux_download "${RELEASE_FILE_URL}" "${RELEASE_FILE}" SKIP_CHECKSUM; then
+					if [[ "${TERMUXD_ALLOW_UNSIGNED_REPO:-false}" != "true" || "${TERMUX_REPO_PKG_FORMAT}" != "debian" ]]; then
+						if ! termux_download "${RELEASE_FILE_SIG_URL}" "${RELEASE_FILE}.gpg" SKIP_CHECKSUM; then
+							sleep "$delay"
+							continue
+						fi
+						if ! gpg --verify "${RELEASE_FILE}.gpg" "${RELEASE_FILE}"; then
+							echo "GPG verification failed, probably we downloaded corrupted metadata. Retrying in $delay seconds."
+							sleep "$delay"
+							continue
+						fi
+					else
+						echo "Using unsigned debian repo metadata from ${RELEASE_FILE_URL}"
 					fi
 
 					if [[ "$TERMUX_REPO_PKG_FORMAT" == "debian" ]]; then

@@ -26,6 +26,7 @@ fi
 : "${TERMUXD_GLIBC_SEED_PACKAGES:=linux-api-headers-glibc glibc}"
 : "${TERMUXD_BUILD_PACKAGE_MODE:=auto}"
 : "${TERMUXD_GLIBC_SEED_MODE:=auto}"
+: "${TERMUXD_ALLOW_UNSIGNED_REPO:=true}"
 : "${TERMUXD_BUILD_JOBS:=4}"
 : "${TERMUXD_USE_DOCKER:=true}"
 : "${TERMUXD_REBUILD_ROOT_PACKAGES:=true}"
@@ -61,6 +62,7 @@ export TERMUXD_GLIBC_PACKAGES
 export TERMUXD_GLIBC_SEED_PACKAGES
 export TERMUXD_BUILD_PACKAGE_MODE
 export TERMUXD_GLIBC_SEED_MODE
+export TERMUXD_ALLOW_UNSIGNED_REPO
 export TERMUXD_BUILD_JOBS
 export TERMUXD_USE_DOCKER
 export TERMUXD_REBUILD_ROOT_PACKAGES
@@ -151,7 +153,7 @@ termuxd_remote_package_index_has_records() {
 	local index_url
 
 	index_url="$(termuxd_package_index_url "${repo_url}" "${distribution}" "${component}" "${abi}")"
-	termuxd_read_url "${index_url}" 2>/dev/null | awk '/^Package: / { found = 1; exit } END { exit found ? 0 : 1 }'
+	termuxd_read_url "${index_url}" 2>/dev/null | awk '/^Package: / { found = 1 } END { exit found ? 0 : 1 }'
 }
 
 termuxd_resolve_build_package_args() {

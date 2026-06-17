@@ -53,6 +53,7 @@ require_equal "${TERMUXD_GLIBC_PACKAGES}" "glibc-runner" "TERMUXD_GLIBC_PACKAGES
 require_equal "${TERMUXD_GLIBC_SEED_PACKAGES}" "linux-api-headers-glibc glibc" "TERMUXD_GLIBC_SEED_PACKAGES"
 require_equal "${TERMUXD_BUILD_PACKAGE_MODE}" "auto" "TERMUXD_BUILD_PACKAGE_MODE"
 require_equal "${TERMUXD_GLIBC_SEED_MODE}" "auto" "TERMUXD_GLIBC_SEED_MODE"
+require_equal "${TERMUXD_ALLOW_UNSIGNED_REPO}" "true" "TERMUXD_ALLOW_UNSIGNED_REPO"
 require_equal "${TERMUXD_BUILD_JOBS}" "4" "TERMUXD_BUILD_JOBS"
 require_equal "${TERMUXD_USE_DOCKER}" "true" "TERMUXD_USE_DOCKER"
 require_equal "${TERMUXD_REBUILD_ROOT_PACKAGES}" "true" "TERMUXD_REBUILD_ROOT_PACKAGES"
@@ -83,11 +84,20 @@ for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 		echo "${build_script} must tee build output to a log file" >&2
 		exit 1
 	}
+	grep -q 'TERMUXD_ALLOW_UNSIGNED_REPO' "${termuxd_dir}/${build_script}" || {
+		echo "${build_script} must pass unsigned Pages repo support into build-package" >&2
+		exit 1
+	}
 	grep -q '/data/data/.built-packages' "${termuxd_dir}/${build_script}" || {
 		echo "${build_script} must clear stale built markers before root package builds" >&2
 		exit 1
 	}
 done
+
+grep -q 'Using unsigned debian repo metadata' "${repo_root}/scripts/build/termux_get_repo_files.sh" || {
+	echo "termux_get_repo_files.sh must support termuxd unsigned GitHub Pages repos" >&2
+	exit 1
+}
 
 grep -q 'CGCT_APP_PREFIX="${TERMUXD_GLIBC_PREFIX_PATH}"' "${termuxd_dir}/build-glibc-packages.sh" || {
 	echo "build-glibc-packages.sh must pass the termuxd glibc prefix into builds" >&2
@@ -171,6 +181,54 @@ if termuxd_should_seed_glibc_prefix "file://${empty_repo}" "stable" "main" "aarc
 	echo "glibc seed should skip when the remote Packages index is unavailable" >&2
 	exit 1
 fi
+
+unsigned_repo="${tmp_root}/unsigned-repo"
+unsigned_packages="${unsigned_repo}/dists/stable/main/binary-aarch64/Packages"
+mkdir -p "$(dirname "${unsigned_packages}")"
+cat > "${unsigned_packages}" <<'EOF'
+Package: glibc
+Version: 2.42
+Architecture: aarch64
+Filename: pool/main/glibc_2.42_aarch64.deb
+SHA256: 0000000000000000000000000000000000000000000000000000000000000000
+EOF
+unsigned_packages_hash="$(sha256sum "${unsigned_packages}" | awk '{print $1}')"
+unsigned_packages_size="$(wc -c < "${unsigned_packages}")"
+cat > "${unsigned_repo}/dists/stable/Release" <<EOF
+Suite: stable
+Codename: stable
+Components: main
+Architectures: aarch64
+SHA256:
+ ${unsigned_packages_hash} ${unsigned_packages_size} main/binary-aarch64/Packages
+EOF
+unsigned_cache="$(mktemp -d "${tmp_root}/unsigned-cache.XXXXXX")"
+unsigned_tmp="$(mktemp -d "${tmp_root}/unsigned-tmp.XXXXXX")"
+mkdir -p "${unsigned_cache}-all" "${unsigned_cache}-aarch64"
+(
+	TERMUXD_ALLOW_UNSIGNED_REPO=true
+	TERMUX_INSTALL_DEPS=true
+	TERMUX_ON_DEVICE_BUILD=false
+	TERMUX_REPO_PKG_FORMAT=debian
+	TERMUX_ARCH=aarch64
+	TERMUX_PKG_NAME=termuxd-unsigned-test
+	TERMUX_COMMON_CACHEDIR="${unsigned_cache}"
+	TERMUX_PKG_TMPDIR="${unsigned_tmp}"
+	TERMUX_REPO_URL=("file://${unsigned_repo}")
+	TERMUX_REPO_DISTRIBUTION=(stable)
+	TERMUX_REPO_COMPONENT=(main)
+	termux_error_exit() { echo "termux_get_repo_files unsigned test failed: $*" >&2; exit 1; }
+	# shellcheck source=scripts/build/termux_download.sh
+	source "${repo_root}/scripts/build/termux_download.sh"
+	# shellcheck source=scripts/build/termux_get_repo_files.sh
+	source "${repo_root}/scripts/build/termux_get_repo_files.sh"
+	termux_get_repo_files
+)
+unsigned_cached_packages="${unsigned_cache}-aarch64/$(printf '%s' "file://${unsigned_repo}" | sed -e 's%https://%%g' -e 's%http://%%g' -e 's%/%-%g')-stable-main-Packages"
+[[ -e "${unsigned_cached_packages}" ]] || {
+	echo "unsigned Pages repo metadata must cache Packages without Release.gpg" >&2
+	exit 1
+}
 
 git -C "${source_repo}" init -q
 git -C "${source_repo}" -c user.name=termuxd -c user.email=termuxd@example.invalid commit --allow-empty -q -m init

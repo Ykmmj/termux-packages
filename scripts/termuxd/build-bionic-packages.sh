@@ -46,7 +46,9 @@ fi
 if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
 	termuxd_prepare_docker_env_args
 	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS "--env TERMUXD_MINIMAL_BASH=${TERMUXD_MINIMAL_BASH}"
+	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS "--env TERMUXD_ALLOW_UNSIGNED_REPO=${TERMUXD_ALLOW_UNSIGNED_REPO}"
 	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS "--env TERMUXD_MINIMAL_BASH=${TERMUXD_MINIMAL_BASH}"
+	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS "--env TERMUXD_ALLOW_UNSIGNED_REPO=${TERMUXD_ALLOW_UNSIGNED_REPO}"
 	if [[ "${TERMUXD_REBUILD_ROOT_PACKAGES}" == "true" ]]; then
 		env \
 			CONTAINER_NAME="${TERMUXD_CONTAINER_NAME}" \
@@ -70,4 +72,5 @@ fi
 
 termuxd_clear_built_markers "${build_packages[@]}"
 exec env TERMUXD_MINIMAL_BASH="${TERMUXD_MINIMAL_BASH}" \
+	TERMUXD_ALLOW_UNSIGNED_REPO="${TERMUXD_ALLOW_UNSIGNED_REPO}" \
 	./build-package.sh "${args[@]}" -o "${TERMUXD_OUTPUT_DIR}" "${build_packages[@]}"
