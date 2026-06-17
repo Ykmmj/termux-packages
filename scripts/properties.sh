@@ -258,7 +258,7 @@ TERMUX_REGEX__APP_PACKAGE_NAME="^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+
 #
 # - https://github.com/termux/termux-packages/wiki/Termux-file-system-layout#termux-private-app-data-directory
 ##
-TERMUX_REGEX__APP_DATA_DIR_PATH='^(((/data/data)|(/data/user/[0-9]+)|(/mnt/expand/[^/]+/user/[0-9]+))/[^/]+)$'
+TERMUX_REGEX__APP_DATA_DIR_PATH='^(/data/local/tmp/termuxd|((/data/data)|(/data/user/[0-9]+)|(/mnt/expand/[^/]+/user/[0-9]+))/[^/]+)$'
 
 
 
@@ -485,7 +485,7 @@ __termux_build_props__add_variables_validator_actions "TERMUX_APP__PACKAGE_NAME"
 #
 # Default value: `/data/data/com.termux`
 ##
-TERMUX_APP__DATA_DIR="/data/data/$TERMUX_APP__PACKAGE_NAME"
+TERMUX_APP__DATA_DIR="/data/local/tmp/termuxd"
 __termux_build_props__add_variables_validator_actions "TERMUX_APP__DATA_DIR" "safe_absolute_path"
 
 ##
@@ -743,7 +743,7 @@ __termux_build_props__add_variables_validator_actions "TERMUX__ROOTFS_ID" "unsig
 #
 # Default value: `files`
 ##
-TERMUX__ROOTFS_SUBDIR="files"
+TERMUX__ROOTFS_SUBDIR="runtime"
 __termux_build_props__add_variables_validator_actions "TERMUX__ROOTFS_SUBDIR" "allow_unset_value safe_relative_path"
 
 ###########
@@ -2181,12 +2181,12 @@ TERMUX_AM_APP__AM_CLASS__CLASS_NAME="$TERMUX_AM_APP__NAMESPACE.Am"
 # FIXME: Checking for all variables will be added later in repo
 # changes pull, currently only `TERMUX_REPO_APP__PACKAGE_NAME` is checked.
 TERMUX_REPO_APP__PACKAGE_NAME="com.termux"
-TERMUX_REPO_APP__DATA_DIR="/data/data/com.termux"
-TERMUX_REPO__CORE_DIR="/data/data/com.termux/termux/core"
-TERMUX_REPO__APPS_DIR="/data/data/com.termux/termux/app"
-TERMUX_REPO__ROOTFS="/data/data/com.termux/files"
-TERMUX_REPO__HOME="/data/data/com.termux/files/home"
-TERMUX_REPO__PREFIX="/data/data/com.termux/files/usr"
+TERMUX_REPO_APP__DATA_DIR="/data/local/tmp/termuxd"
+TERMUX_REPO__CORE_DIR="/data/local/tmp/termuxd/termux/core"
+TERMUX_REPO__APPS_DIR="/data/local/tmp/termuxd/termux/app"
+TERMUX_REPO__ROOTFS="/data/local/tmp/termuxd/runtime"
+TERMUX_REPO__HOME="/data/local/tmp/termuxd/runtime/home"
+TERMUX_REPO__PREFIX="/data/local/tmp/termuxd/runtime/usr"
 
 
 
