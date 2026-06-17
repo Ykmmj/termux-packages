@@ -50,6 +50,7 @@ require_equal "${TERMUXD_GLIBC_PACKAGES}" "glibc-runner" "TERMUXD_GLIBC_PACKAGES
 require_equal "${TERMUXD_GLIBC_SEED_PACKAGES}" "linux-api-headers-glibc glibc" "TERMUXD_GLIBC_SEED_PACKAGES"
 require_equal "${TERMUXD_BUILD_PACKAGE_MODE}" "auto" "TERMUXD_BUILD_PACKAGE_MODE"
 require_equal "${TERMUXD_GLIBC_SEED_MODE}" "auto" "TERMUXD_GLIBC_SEED_MODE"
+require_equal "${TERMUXD_BUILD_JOBS}" "4" "TERMUXD_BUILD_JOBS"
 require_equal "${TERMUXD_USE_DOCKER}" "true" "TERMUXD_USE_DOCKER"
 require_equal "${TERMUXD_REBUILD_ROOT_PACKAGES}" "true" "TERMUXD_REBUILD_ROOT_PACKAGES"
 
@@ -67,6 +68,11 @@ for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 		exit 1
 	}
 done
+
+grep -q 'TERMUX_PKG_MASSAGE_PROCESSES' "${repo_root}/scripts/build/termux_step_massage.sh" || {
+	echo "termux_step_massage.sh must not hard-code nproc for symbol checks" >&2
+	exit 1
+}
 
 for pages_script in init-apt-pages.sh publish-apt-pages.sh; do
 	grep -q 'GIT_TERMINAL_PROMPT=0' "${termuxd_dir}/${pages_script}" || {

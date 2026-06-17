@@ -264,7 +264,7 @@ termux_step_massage() {
 		echo "INFO: Done ... $((t1-t0))s"
 		echo "INFO: Total OpenMP symbols $(echo ${LIBOMP_SYMBOLS} | wc -w)"
 
-		local nproc=$(nproc)
+		local nproc="${TERMUX_PKG_MASSAGE_PROCESSES:-${TERMUX_PKG_MAKE_PROCESSES:-$(nproc)}}"
 		echo "INFO: Identifying files with nproc=${nproc}"
 		local t0=$(get_epoch)
 		local files; files="$(IFS=; find . -type f -print0 | \
@@ -290,7 +290,7 @@ termux_step_massage() {
 		local t0=$(get_epoch)
 		local undef=$(echo "${valid}" | xargs -P"${nproc}" -i sh -c '${READELF} -s "{}" | grep -Ef "${pattern_file_undef}"')
 		local openmp=$(echo "${valid}" | xargs -P"${nproc}" -i sh -c '${READELF} -s "{}" | grep -Ef "${pattern_file_openmp}"')
-		local depend_libomp_so=$(echo "${valid}" | xargs -P$(nproc) -n1 ${READELF} -d 2>/dev/null | sed -ne "s|.*NEEDED.*\[\(.*\)\].*|\1|p" | grep libomp.so)
+		local depend_libomp_so=$(echo "${valid}" | xargs -P"${nproc}" -n1 ${READELF} -d 2>/dev/null | sed -ne "s|.*NEEDED.*\[\(.*\)\].*|\1|p" | grep libomp.so)
 		local t1=$(get_epoch)
 		echo "INFO: Done ... $((t1-t0))s"
 
