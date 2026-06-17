@@ -108,7 +108,7 @@ termux_package__add_prefix_glibc_to_package_name() {
 termux_package__is_glibc_classical_bridge_dependency() {
 
     case "${1}" in
-        resolv-conf)
+        bash|resolv-conf)
             return 0
             ;;
     esac

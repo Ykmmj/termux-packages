@@ -65,9 +65,9 @@ require_equal \
 	"glibc versioned dependency prefixing"
 
 require_equal \
-	"$(termux_package__add_prefix_glibc_to_package_list 'ca-certificates-glibc, resolv-conf, zlib')" \
-	"ca-certificates-glibc, resolv-conf, zlib-glibc" \
-	"glibc dependency prefixing must keep classical resolver config dependency"
+	"$(termux_package__add_prefix_glibc_to_package_list 'bash, ca-certificates-glibc, resolv-conf, zlib')" \
+	"bash, ca-certificates-glibc, resolv-conf, zlib-glibc" \
+	"glibc dependency prefixing must keep classical bridge dependencies"
 
 for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 	grep -q 'TERMUXD_LOG_DIR="${TERMUXD_LOG_DIR:-${TERMUXD_INVOCATION_DIR}/log}"' "${termuxd_dir}/${build_script}" || {
@@ -195,12 +195,15 @@ done
 
 buildorder_root="${tmp_root}/buildorder"
 mkdir -p "${buildorder_root}/gpkg/bash" "${buildorder_root}/gpkg/glibc-runner"
-mkdir -p "${buildorder_root}/gpkg/openssl" "${buildorder_root}/packages/resolv-conf"
+mkdir -p "${buildorder_root}/gpkg/openssl" "${buildorder_root}/packages/bash" "${buildorder_root}/packages/resolv-conf"
 cat > "${buildorder_root}/gpkg/bash/build.sh" <<'EOF'
 TERMUX_PKG_VERSION=1
 EOF
+cat > "${buildorder_root}/packages/bash/build.sh" <<'EOF'
+TERMUX_PKG_VERSION=1
+EOF
 cat > "${buildorder_root}/gpkg/glibc-runner/build.sh" <<'EOF'
-TERMUX_PKG_DEPENDS="bash"
+TERMUX_PKG_DEPENDS="bash-glibc, bash"
 EOF
 cat > "${buildorder_root}/gpkg/openssl/build.sh" <<'EOF'
 TERMUX_PKG_DEPENDS="resolv-conf"
@@ -217,10 +220,15 @@ buildorder_output="$(
 		gpkg/glibc-runner \
 		gpkg
 )"
-grep -q '^bash-glibc' <<< "${buildorder_output}" || {
-	echo "glibc buildorder must resolve bare bridge dependencies to glibc package names" >&2
+if awk '$1 == "bash" { found = 1 } END { exit found ? 0 : 1 }' <<< "${buildorder_output}"; then
+	echo "glibc buildorder must keep bionic bash bridge dependencies out of the glibc build graph" >&2
 	exit 1
-}
+fi
+bash_glibc_count="$(awk '$1 == "bash-glibc" { count++ } END { print count + 0 }' <<< "${buildorder_output}")"
+if [[ "${bash_glibc_count}" != "1" ]]; then
+	echo "glibc buildorder must keep the explicit bash-glibc dependency exactly once" >&2
+	exit 1
+fi
 buildorder_output="$(
 	cd "${buildorder_root}"
 	TERMUX_PACKAGE_LIBRARY=glibc \

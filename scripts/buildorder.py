@@ -103,8 +103,16 @@ def has_prefix_glibc(pkgname):
     pkgname = pkgname.split("-")
     return "glibc" in pkgname or "glibc32" in pkgname
 
+def is_glibc_classical_bridge_dependency(pkgname):
+    return pkgname in ("bash", "resolv-conf")
+
 def resolve_library_dependency_name(dependency_name, pkgs_map):
-    if termux_global_library == "true" and termux_pkg_library == "glibc" and not has_prefix_glibc(dependency_name):
+    if (
+        termux_global_library == "true"
+        and termux_pkg_library == "glibc"
+        and not has_prefix_glibc(dependency_name)
+        and not is_glibc_classical_bridge_dependency(dependency_name)
+    ):
         mod_dependency_name = add_prefix_glibc_to_pkgname(dependency_name)
         return mod_dependency_name if mod_dependency_name in pkgs_map else dependency_name
     return dependency_name
@@ -182,6 +190,8 @@ class TermuxPackage(object):
                 self.deps.difference_update([subpkg.name for subpkg in self.subpkgs])
         for dependency_name in sorted(self.deps):
             dependency_name = resolve_library_dependency_name(dependency_name, pkgs_map)
+            if is_glibc_classical_bridge_dependency(dependency_name) and is_external_bionic_runtime_dependency(dependency_name):
+                continue
             if dependency_name not in pkgs_map and is_external_bionic_runtime_dependency(dependency_name):
                 continue
             if dependency_name not in self.pkgs_cache:
@@ -226,6 +236,8 @@ class TermuxSubPackage:
             dir_root = self.dir
         for dependency_name in sorted(self.deps):
             dependency_name = resolve_library_dependency_name(dependency_name, pkgs_map)
+            if is_glibc_classical_bridge_dependency(dependency_name) and is_external_bionic_runtime_dependency(dependency_name):
+                continue
             if dependency_name not in pkgs_map and is_external_bionic_runtime_dependency(dependency_name):
                 continue
             if dependency_name == self.parent.name:
