@@ -39,6 +39,8 @@ done
 
 # shellcheck source=scripts/termuxd/config.sh
 source "${termuxd_dir}/config.sh"
+# shellcheck source=scripts/utils/termux/package/termux_package.sh
+source "${repo_root}/scripts/utils/termux/package/termux_package.sh"
 
 require_equal "${TERMUXD_PREFIX_PATH}" "/data/local/tmp/termuxd/runtime/usr" "TERMUXD_PREFIX_PATH"
 require_equal "${TERMUXD_GLIBC_PREFIX_PATH}" "/data/local/tmp/termuxd/runtime/usr/glibc" "TERMUXD_GLIBC_PREFIX_PATH"
@@ -56,6 +58,11 @@ require_equal "${TERMUXD_USE_DOCKER}" "true" "TERMUXD_USE_DOCKER"
 require_equal "${TERMUXD_REBUILD_ROOT_PACKAGES}" "true" "TERMUXD_REBUILD_ROOT_PACKAGES"
 require_equal "${TERMUXD_GLIBC_BUILDER_IMAGE_NAME}" "ghcr.io/termux/package-builder-cgct" "TERMUXD_GLIBC_BUILDER_IMAGE_NAME"
 require_equal "${TERMUXD_RESET_GLIBC_CONTAINER}" "false" "TERMUXD_RESET_GLIBC_CONTAINER"
+
+require_equal \
+	"$(termux_package__add_prefix_glibc_to_package_list 'glibc (= 2.42)')" \
+	"glibc (= 2.42)" \
+	"glibc versioned dependency prefixing"
 
 for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 	grep -q 'TERMUXD_LOG_DIR="${TERMUXD_LOG_DIR:-${TERMUXD_INVOCATION_DIR}/log}"' "${termuxd_dir}/${build_script}" || {
@@ -84,6 +91,14 @@ grep -q 'TERMUXD_RESET_GLIBC_CONTAINER' "${termuxd_dir}/build-glibc-packages.sh"
 	echo "build-glibc-packages.sh must expose an explicit glibc container reset switch" >&2
 	exit 1
 }
+grep -q 'Refreshing glibc workdir in place' "${termuxd_dir}/build-glibc-packages.sh" || {
+	echo "build-glibc-packages.sh must preserve the glibc workdir mount root when reusing containers" >&2
+	exit 1
+}
+if grep -q 'rm -rf "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}"' "${termuxd_dir}/build-glibc-packages.sh"; then
+	echo "build-glibc-packages.sh must not delete the glibc workdir mount root" >&2
+	exit 1
+fi
 
 grep -q 'TERMUXD_MINIMAL_BASH=' "${termuxd_dir}/build-bionic-packages.sh" || {
 	echo "build-bionic-packages.sh must pass TERMUXD_MINIMAL_BASH into Docker" >&2

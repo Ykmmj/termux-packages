@@ -123,23 +123,35 @@ termux_package__add_prefix_glibc_to_package_name() {
 termux_package__add_prefix_glibc_to_package_list() {
 
     local packages=""
+    local package_separator=""
+    local -a dependency_clauses
 
-    for __pkg in ${1//,/}; do
-        if ! "$(echo "$__pkg" | grep -q -e '(' -e ')' -e '|')"; then
-            if [ "${packages: -1}" != "|" ]; then
-                packages+=","
+    IFS=',' read -r -a dependency_clauses <<< "$1"
+    for __clause in "${dependency_clauses[@]}"; do
+        local transformed_clause=""
+        local alternative_separator=""
+        local -a alternatives
+
+        IFS='|' read -r -a alternatives <<< "$__clause"
+        for __alternative in "${alternatives[@]}"; do
+            local dependency="${__alternative#"${__alternative%%[![:space:]]*}"}"
+            dependency="${dependency%"${dependency##*[![:space:]]}"}"
+
+            local package_name="${dependency%%[[:space:](<>=]*}"
+            local dependency_suffix="${dependency#"${package_name}"}"
+            if [[ -n "${package_name}" ]] &&
+                ! termux_package__is_package_name_have_glibc_prefix "${package_name}"; then
+                dependency="$(termux_package__add_prefix_glibc_to_package_name "${package_name}")${dependency_suffix}"
             fi
-            packages+=" "
-            if ! termux_package__is_package_name_have_glibc_prefix "$__pkg"; then
-                packages+="$(termux_package__add_prefix_glibc_to_package_name "$__pkg")"
-            else
-                packages+="$__pkg"
-            fi
-        else
-            packages+=" $__pkg"
-        fi
+
+            transformed_clause+="${alternative_separator}${dependency}"
+            alternative_separator=" | "
+        done
+
+        packages+="${package_separator}${transformed_clause}"
+        package_separator=", "
     done
 
-    echo "${packages:2}"
+    echo "${packages}"
 
 }

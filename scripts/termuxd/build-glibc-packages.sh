@@ -52,6 +52,24 @@ termuxd_remove_glibc_container_if_needed() {
 
 termuxd_remove_glibc_container_if_needed
 
+termuxd_glibc_container_exists() {
+	[[ "${TERMUXD_USE_DOCKER}" == "true" ]] &&
+		docker container inspect "${TERMUXD_GLIBC_CONTAINER_NAME}" >/dev/null 2>&1
+}
+
+termuxd_stop_glibc_container_for_workdir_refresh() {
+	if ! termuxd_glibc_container_exists; then
+		return
+	fi
+
+	local is_running
+	is_running="$(docker container inspect -f '{{.State.Running}}' "${TERMUXD_GLIBC_CONTAINER_NAME}")"
+	if [[ "${is_running}" == "true" ]]; then
+		echo "Stopping existing glibc build container before refreshing mounted workdir"
+		docker stop "${TERMUXD_GLIBC_CONTAINER_NAME}" >/dev/null
+	fi
+}
+
 source_abs="$(realpath "${TERMUXD_GLIBC_PACKAGES_SOURCE_DIR}")"
 work_abs="$(realpath -m "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}")"
 if [[ "${source_abs}" == "${work_abs}" ]]; then
@@ -59,19 +77,42 @@ if [[ "${source_abs}" == "${work_abs}" ]]; then
 	exit 1
 fi
 
+termuxd_stop_glibc_container_for_workdir_refresh
+
+mkdir -p "$(dirname "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}")"
+source_head="$(git -C "${TERMUXD_GLIBC_PACKAGES_SOURCE_DIR}" rev-parse HEAD)"
+tmp_work_dir=""
+cleanup_tmp_work_dir() {
+	if [[ -n "${tmp_work_dir}" && -d "${tmp_work_dir}" ]]; then
+		rm -rf "${tmp_work_dir}"
+	fi
+}
+trap cleanup_tmp_work_dir EXIT
+tmp_work_dir="$(mktemp -d "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}.tmp.XXXXXXXX")"
+git clone -q --shared "${TERMUXD_GLIBC_PACKAGES_SOURCE_DIR}" "${tmp_work_dir}"
+git -C "${tmp_work_dir}" checkout -q --detach "${source_head}"
+touch "${tmp_work_dir}/.termuxd-generated-workdir"
+
 if [[ -e "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}" ]]; then
 	if [[ ! -f "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}/.termuxd-generated-workdir" ]]; then
 		echo "refusing to remove unmarked glibc workdir: ${TERMUXD_GLIBC_PACKAGES_WORK_DIR}" >&2
 		exit 1
 	fi
-	rm -rf "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}"
+	echo "Refreshing glibc workdir in place: ${TERMUXD_GLIBC_PACKAGES_WORK_DIR}"
+	find "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}" \
+		-mindepth 1 \
+		-maxdepth 1 \
+		! -name output \
+		-exec rm -rf -- {} +
+else
+	mkdir -p "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}"
 fi
 
-mkdir -p "$(dirname "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}")"
-source_head="$(git -C "${TERMUXD_GLIBC_PACKAGES_SOURCE_DIR}" rev-parse HEAD)"
-git clone -q --shared "${TERMUXD_GLIBC_PACKAGES_SOURCE_DIR}" "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}"
-git -C "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}" checkout -q --detach "${source_head}"
-touch "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}/.termuxd-generated-workdir"
+shopt -s dotglob nullglob
+mv "${tmp_work_dir}"/* "${TERMUXD_GLIBC_PACKAGES_WORK_DIR}/"
+shopt -u dotglob nullglob
+rmdir "${tmp_work_dir}"
+tmp_work_dir=""
 
 build_system_paths=(
 	build-package.sh
