@@ -4,6 +4,6 @@
     "name": "termuxd-bionic",
     "distribution": "stable",
     "component": "main",
-    "url": "https://ykmmj.github.io/termuxd-packages/apt/bionic"
+    "url": "https://ykmmj.github.io/termuxd-packages-repo/apt/bionic"
   }
 }

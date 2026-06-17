@@ -66,7 +66,7 @@ require_equal "${TERMUX_REPO__HOME}" "/data/local/tmp/termuxd/runtime/home" "TER
 require_equal "${TERMUX_REPO__PREFIX}" "${TERMUX__PREFIX}" "TERMUX_REPO__PREFIX"
 require_equal "${CGCT_DEFAULT_PREFIX}" "/data/data/com.termux/files/usr/glibc" "CGCT_DEFAULT_PREFIX"
 require_equal "${CGCT_DIR}" "/data/data/com.termux/cgct" "CGCT_DIR"
-require_equal "${TERMUX_REPO_URL[0]}" "https://ykmmj.github.io/termuxd-packages/apt/bionic" "TERMUX_REPO_URL[0]"
+require_equal "${TERMUX_REPO_URL[0]}" "https://ykmmj.github.io/termuxd-packages-repo/apt/bionic" "TERMUX_REPO_URL[0]"
 require_equal "${TERMUX_REPO_DISTRIBUTION[0]}" "stable" "TERMUX_REPO_DISTRIBUTION[0]"
 require_equal "${TERMUX_REPO_COMPONENT[0]}" "main" "TERMUX_REPO_COMPONENT[0]"
 
