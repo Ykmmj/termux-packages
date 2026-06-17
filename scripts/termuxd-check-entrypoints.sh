@@ -263,6 +263,7 @@ make_fake_deb "${packages_dir}" "glibc"
 make_fake_deb "${packages_dir}" "glibc-runner"
 make_fake_deb "${packages_dir}" "attr-glibc"
 make_fake_deb "${packages_dir}" "attr-glibc-static"
+make_fake_deb "${packages_dir}" "resolv-conf-glibc"
 make_fake_deb "${packages_dir}" "make"
 
 if "${termuxd_dir}/publish-apt-pages.sh" "${source_repo}" "${packages_dir}" "apt/bionic" >/dev/null 2>"${tmp_root}/publish.log"; then
@@ -319,6 +320,10 @@ grep -q '^Package: attr-glibc$' "${glibc_index}" || {
 }
 if grep -q '^Package: attr-glibc-static$' "${glibc_index}"; then
 	echo "static glibc packages must be filtered from glibc repo" >&2
+	exit 1
+fi
+if grep -q '^Package: resolv-conf-glibc$' "${glibc_index}"; then
+	echo "resolv-conf must remain the bionic/classical package and not be published as resolv-conf-glibc" >&2
 	exit 1
 fi
 if grep -q '^Package: bash$' "${glibc_index}"; then

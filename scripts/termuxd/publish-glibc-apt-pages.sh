@@ -19,7 +19,7 @@ shopt -s nullglob
 for deb in "${packages_dir}"/*.deb; do
 	base="$(basename "${deb}")"
 	case "${base}" in
-		glibc-static_*.deb|*-glibc-static_*.deb)
+		glibc-static_*.deb|*-glibc-static_*.deb|resolv-conf-glibc_*.deb)
 			continue
 			;;
 		glibc_*.deb|glibc32_*.deb|glibc-runner_*.deb|*-glibc_*.deb|*-glibc32_*.deb)
