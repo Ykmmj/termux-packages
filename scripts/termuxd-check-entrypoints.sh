@@ -149,6 +149,10 @@ grep -Fq '[ "\${HOME}" = "/" ]' "${termuxd_dir}/package-runtime.sh" || {
 	echo "package-runtime.sh must override Android adb shell HOME=/ with the termuxd runtime home" >&2
 	exit 1
 }
+grep -Fq 'export SHELL="${TERMUXD_PREFIX_PATH}/bin/bash"' "${termuxd_dir}/package-runtime.sh" || {
+	echo "package-runtime.sh must advertise the termuxd bash path in SHELL" >&2
+	exit 1
+}
 grep -q 'runtime/home/.bashrc' "${termuxd_dir}/package-runtime.sh" || {
 	echo "package-runtime.sh must create a default runtime home .bashrc" >&2
 	exit 1
