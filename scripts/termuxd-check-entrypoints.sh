@@ -149,6 +149,18 @@ grep -Fq '[ "\${HOME}" = "/" ]' "${termuxd_dir}/package-runtime.sh" || {
 	echo "package-runtime.sh must override Android adb shell HOME=/ with the termuxd runtime home" >&2
 	exit 1
 }
+grep -q 'runtime/home/.bashrc' "${termuxd_dir}/package-runtime.sh" || {
+	echo "package-runtime.sh must create a default runtime home .bashrc" >&2
+	exit 1
+}
+grep -q 'runtime/home/.bash_profile' "${termuxd_dir}/package-runtime.sh" || {
+	echo "package-runtime.sh must create a default runtime home .bash_profile" >&2
+	exit 1
+}
+if grep -qi 'opencode' "${termuxd_dir}/package-runtime.sh"; then
+	echo "package-runtime.sh default shell config must not include opencode-specific content" >&2
+	exit 1
+fi
 
 tmp_root="$(mktemp -d)"
 trap 'rm -rf "${tmp_root}"' EXIT

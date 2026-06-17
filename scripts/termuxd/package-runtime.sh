@@ -179,6 +179,48 @@ cp -a "${extracted_runtime_dir}/." "${stage_dir}/runtime/"
 prefix_under_runtime="${TERMUXD_PREFIX_PATH#${TERMUXD_RUNTIME_PATH}/}"
 stage_runtime_prefix="${stage_dir}/runtime/${prefix_under_runtime}"
 mkdir -p \
+	"${stage_dir}/runtime/home/bin" \
+	"${stage_dir}/runtime/home/.local/bin"
+cat > "${stage_dir}/runtime/home/.bashrc" <<'EOF'
+# termuxd user bashrc
+
+if [ -n "${TERMUXD_USER_BASHRC_SOURCED:-}" ]; then
+	return 0
+fi
+export TERMUXD_USER_BASHRC_SOURCED=1
+
+export HISTFILE="${HISTFILE:-${HOME}/.bash_history}"
+export HISTSIZE="${HISTSIZE:-10000}"
+export HISTFILESIZE="${HISTFILESIZE:-20000}"
+export HISTCONTROL="${HISTCONTROL:-ignoreboth}"
+shopt -s histappend histverify 2>/dev/null || true
+
+export TMPDIR="${TMPDIR:-${PREFIX}/tmp}"
+export PAGER="${PAGER:-less}"
+
+for termuxd_user_path_dir in "${HOME}/bin" "${HOME}/.local/bin"; do
+	if [ -d "${termuxd_user_path_dir}" ]; then
+		case ":${PATH}:" in
+			*:"${termuxd_user_path_dir}":*) ;;
+			*) export PATH="${termuxd_user_path_dir}:${PATH}" ;;
+		esac
+	fi
+done
+unset termuxd_user_path_dir
+
+PROMPT_DIRTRIM="${PROMPT_DIRTRIM:-2}"
+if [[ "${PS1:-}" == '\s-\v\$ ' ]]; then
+	PS1='\[\e[0;32m\]\w\[\e[0m\] \[\e[0;97m\]\$\[\e[0m\] '
+fi
+EOF
+cat > "${stage_dir}/runtime/home/.bash_profile" <<'EOF'
+# termuxd user bash profile
+
+if [ -r "${HOME}/.bashrc" ]; then
+	. "${HOME}/.bashrc"
+fi
+EOF
+mkdir -p \
 	"${stage_runtime_prefix}/etc/apt/apt.conf.d" \
 	"${stage_runtime_prefix}/etc/apt/preferences.d" \
 	"${stage_runtime_prefix}/etc/apt/sources.list.d" \
