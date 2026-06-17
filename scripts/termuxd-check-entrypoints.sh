@@ -64,6 +64,11 @@ require_equal \
 	"glibc (= 2.42)" \
 	"glibc versioned dependency prefixing"
 
+require_equal \
+	"$(termux_package__add_prefix_glibc_to_package_list 'ca-certificates-glibc, resolv-conf, zlib')" \
+	"ca-certificates-glibc, resolv-conf, zlib-glibc" \
+	"glibc dependency prefixing must keep classical resolver config dependency"
+
 for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 	grep -q 'TERMUXD_LOG_DIR="${TERMUXD_LOG_DIR:-${TERMUXD_INVOCATION_DIR}/log}"' "${termuxd_dir}/${build_script}" || {
 		echo "${build_script} must keep build logs in the invocation log directory" >&2

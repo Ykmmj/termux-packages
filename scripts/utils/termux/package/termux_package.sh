@@ -105,6 +105,18 @@ termux_package__add_prefix_glibc_to_package_name() {
 
 }
 
+termux_package__is_glibc_classical_bridge_dependency() {
+
+    case "${1}" in
+        resolv-conf)
+            return 0
+            ;;
+    esac
+
+    return 1
+
+}
+
 
 
 ##
@@ -140,6 +152,7 @@ termux_package__add_prefix_glibc_to_package_list() {
             local package_name="${dependency%%[[:space:](<>=]*}"
             local dependency_suffix="${dependency#"${package_name}"}"
             if [[ -n "${package_name}" ]] &&
+                ! termux_package__is_glibc_classical_bridge_dependency "${package_name}" &&
                 ! termux_package__is_package_name_have_glibc_prefix "${package_name}"; then
                 dependency="$(termux_package__add_prefix_glibc_to_package_name "${package_name}")${dependency_suffix}"
             fi
