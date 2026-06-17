@@ -54,6 +54,8 @@ require_equal "${TERMUXD_GLIBC_SEED_MODE}" "auto" "TERMUXD_GLIBC_SEED_MODE"
 require_equal "${TERMUXD_BUILD_JOBS}" "4" "TERMUXD_BUILD_JOBS"
 require_equal "${TERMUXD_USE_DOCKER}" "true" "TERMUXD_USE_DOCKER"
 require_equal "${TERMUXD_REBUILD_ROOT_PACKAGES}" "true" "TERMUXD_REBUILD_ROOT_PACKAGES"
+require_equal "${TERMUXD_GLIBC_BUILDER_IMAGE_NAME}" "ghcr.io/termux/package-builder-cgct" "TERMUXD_GLIBC_BUILDER_IMAGE_NAME"
+require_equal "${TERMUXD_RESET_GLIBC_CONTAINER}" "true" "TERMUXD_RESET_GLIBC_CONTAINER"
 
 for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 	grep -q 'TERMUXD_INVOCATION_DIR="${PWD}"' "${termuxd_dir}/${build_script}" || {
@@ -69,6 +71,19 @@ for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 		exit 1
 	}
 done
+
+grep -q 'CGCT_APP_PREFIX="${TERMUXD_GLIBC_PREFIX_PATH}"' "${termuxd_dir}/build-glibc-packages.sh" || {
+	echo "build-glibc-packages.sh must pass the termuxd glibc prefix into builds" >&2
+	exit 1
+}
+grep -q 'TERMUX_BUILDER_IMAGE_NAME="${TERMUXD_GLIBC_BUILDER_IMAGE_NAME}"' "${termuxd_dir}/build-glibc-packages.sh" || {
+	echo "build-glibc-packages.sh must use the termuxd CGCT builder image" >&2
+	exit 1
+}
+grep -q 'TERMUXD_RESET_GLIBC_CONTAINER' "${termuxd_dir}/build-glibc-packages.sh" || {
+	echo "build-glibc-packages.sh must reset the generated-workdir glibc container by default" >&2
+	exit 1
+}
 
 grep -q 'TERMUXD_MINIMAL_BASH=' "${termuxd_dir}/build-bionic-packages.sh" || {
 	echo "build-bionic-packages.sh must pass TERMUXD_MINIMAL_BASH into Docker" >&2
@@ -157,6 +172,48 @@ for repo_path in apt/bionic apt/glibc; do
 		exit 1
 	fi
 done
+
+buildorder_root="${tmp_root}/buildorder"
+mkdir -p "${buildorder_root}/gpkg/bash" "${buildorder_root}/gpkg/glibc-runner"
+mkdir -p "${buildorder_root}/gpkg/openssl" "${buildorder_root}/packages/resolv-conf"
+cat > "${buildorder_root}/gpkg/bash/build.sh" <<'EOF'
+TERMUX_PKG_VERSION=1
+EOF
+cat > "${buildorder_root}/gpkg/glibc-runner/build.sh" <<'EOF'
+TERMUX_PKG_DEPENDS="bash"
+EOF
+cat > "${buildorder_root}/gpkg/openssl/build.sh" <<'EOF'
+TERMUX_PKG_DEPENDS="resolv-conf"
+EOF
+cat > "${buildorder_root}/packages/resolv-conf/build.sh" <<'EOF'
+TERMUX_PKG_VERSION=1
+EOF
+buildorder_output="$(
+	cd "${buildorder_root}"
+	TERMUX_PACKAGE_LIBRARY=glibc \
+	TERMUX_GLOBAL_LIBRARY=true \
+	TERMUX_ARCH=aarch64 \
+		"${repo_root}/scripts/buildorder.py" \
+		gpkg/glibc-runner \
+		gpkg
+)"
+grep -q '^bash-glibc' <<< "${buildorder_output}" || {
+	echo "glibc buildorder must resolve bare bridge dependencies to glibc package names" >&2
+	exit 1
+}
+buildorder_output="$(
+	cd "${buildorder_root}"
+	TERMUX_PACKAGE_LIBRARY=glibc \
+	TERMUX_GLOBAL_LIBRARY=true \
+	TERMUX_ARCH=aarch64 \
+		"${repo_root}/scripts/buildorder.py" \
+		gpkg/openssl \
+		gpkg
+)"
+if grep -q 'resolv-conf' <<< "${buildorder_output}"; then
+	echo "glibc buildorder must keep bionic runtime-only dependencies out of the glibc build graph" >&2
+	exit 1
+fi
 
 make_fake_deb() {
 	local output_dir="$1"

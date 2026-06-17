@@ -103,6 +103,20 @@ def has_prefix_glibc(pkgname):
     pkgname = pkgname.split("-")
     return "glibc" in pkgname or "glibc32" in pkgname
 
+def resolve_library_dependency_name(dependency_name, pkgs_map):
+    if termux_global_library == "true" and termux_pkg_library == "glibc" and not has_prefix_glibc(dependency_name):
+        mod_dependency_name = add_prefix_glibc_to_pkgname(dependency_name)
+        return mod_dependency_name if mod_dependency_name in pkgs_map else dependency_name
+    return dependency_name
+
+def is_external_bionic_runtime_dependency(dependency_name):
+    return (
+        termux_global_library == "true"
+        and termux_pkg_library == "glibc"
+        and not has_prefix_glibc(dependency_name)
+        and os.path.isfile(os.path.join("packages", dependency_name, "build.sh"))
+    )
+
 class TermuxPackage(object):
     "A main package definition represented by a directory with a build.sh file."
     def __init__(self, dir_path, fast_build_mode):
@@ -167,9 +181,9 @@ class TermuxPackage(object):
             if not self.fast_build_mode or self.dir == dir_root:
                 self.deps.difference_update([subpkg.name for subpkg in self.subpkgs])
         for dependency_name in sorted(self.deps):
-            if termux_global_library == "true" and termux_pkg_library == "glibc" and not has_prefix_glibc(dependency_name):
-                mod_dependency_name = add_prefix_glibc_to_pkgname(dependency_name)
-                dependency_name = mod_dependency_name if mod_dependency_name in pkgs_map else dependency_name
+            dependency_name = resolve_library_dependency_name(dependency_name, pkgs_map)
+            if dependency_name not in pkgs_map and is_external_bionic_runtime_dependency(dependency_name):
+                continue
             if dependency_name not in self.pkgs_cache:
                 self.pkgs_cache.append(dependency_name)
                 dependency_package = pkgs_map[dependency_name]
@@ -211,6 +225,9 @@ class TermuxSubPackage:
         if not dir_root:
             dir_root = self.dir
         for dependency_name in sorted(self.deps):
+            dependency_name = resolve_library_dependency_name(dependency_name, pkgs_map)
+            if dependency_name not in pkgs_map and is_external_bionic_runtime_dependency(dependency_name):
+                continue
             if dependency_name == self.parent.name:
                 self.parent.deps.discard(self.name)
             dependency_package = pkgs_map[dependency_name]
@@ -263,6 +280,9 @@ def read_packages_from_directories(directories, fast_build_mode, full_buildmode)
 
     for pkg in all_packages:
         for dependency_name in pkg.deps:
+            dependency_name = resolve_library_dependency_name(dependency_name, pkgs_map)
+            if dependency_name not in pkgs_map and is_external_bionic_runtime_dependency(dependency_name):
+                continue
             if dependency_name not in pkgs_map:
                 die('Package %s depends on non-existing package "%s"' % (pkg.name, dependency_name))
             dep_pkg = pkgs_map[dependency_name]
