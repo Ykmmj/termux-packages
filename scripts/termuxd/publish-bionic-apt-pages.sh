@@ -27,7 +27,7 @@ for deb in "${packages_dir}"/*.deb; do
 done
 shopt -u nullglob
 
-APT_MERGE_EXISTING="${APT_MERGE_EXISTING:-false}" exec "${script_dir}/publish-apt-pages.sh" \
+APT_MERGE_EXISTING="${APT_MERGE_EXISTING:-true}" exec "${script_dir}/publish-apt-pages.sh" \
 	"${TERMUXD_REPO_ROOT}" \
 	"${filtered_dir}" \
 	"${PAGES_REPO_DIR:-apt/bionic}"
