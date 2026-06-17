@@ -27,6 +27,10 @@ checksum*
 /debs/
 /output/
 
+# Generated termuxd runtime/build artifacts.
+/build/
+/out/
+
 # Preinstalled build tools.
 /build-tools/
 

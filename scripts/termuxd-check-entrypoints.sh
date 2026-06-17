@@ -46,6 +46,7 @@ require_equal "${TERMUXD_BIONIC_APT_REPO_URL}" "https://ykmmj.github.io/termuxd-
 require_equal "${TERMUXD_GLIBC_APT_REPO_URL}" "https://ykmmj.github.io/termuxd-packages-repo/apt/glibc" "TERMUXD_GLIBC_APT_REPO_URL"
 require_equal "${TERMUXD_BIONIC_ROOT_PACKAGES}" "apt bash" "TERMUXD_BIONIC_ROOT_PACKAGES"
 require_equal "${TERMUXD_BIONIC_BUILD_PACKAGES}" "apt bash" "TERMUXD_BIONIC_BUILD_PACKAGES"
+require_equal "${TERMUXD_MINIMAL_BASH}" "true" "TERMUXD_MINIMAL_BASH"
 require_equal "${TERMUXD_GLIBC_PACKAGES}" "glibc-runner" "TERMUXD_GLIBC_PACKAGES"
 require_equal "${TERMUXD_GLIBC_SEED_PACKAGES}" "linux-api-headers-glibc glibc" "TERMUXD_GLIBC_SEED_PACKAGES"
 require_equal "${TERMUXD_BUILD_PACKAGE_MODE}" "auto" "TERMUXD_BUILD_PACKAGE_MODE"
@@ -68,6 +69,11 @@ for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
 		exit 1
 	}
 done
+
+grep -q 'TERMUXD_MINIMAL_BASH=' "${termuxd_dir}/build-bionic-packages.sh" || {
+	echo "build-bionic-packages.sh must pass TERMUXD_MINIMAL_BASH into Docker" >&2
+	exit 1
+}
 
 grep -q 'TERMUX_PKG_MASSAGE_PROCESSES' "${repo_root}/scripts/build/termux_step_massage.sh" || {
 	echo "termux_step_massage.sh must not hard-code nproc for symbol checks" >&2

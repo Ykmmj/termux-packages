@@ -6,7 +6,10 @@ TERMUX_PKG_VERSION=5.3.9
 TERMUX_PKG_SRCURL=https://mirrors.kernel.org/gnu/bash/bash-${TERMUX_PKG_VERSION%.*}.tar.gz
 TERMUX_PKG_SHA256=0d5cd86965f869a26cf64f4b71be7b96f90a3ba8b3d74e27e8e9d9d5550f31ba
 TERMUX_PKG_AUTO_UPDATE=false
-TERMUX_PKG_DEPENDS="libandroid-support, libiconv, readline (>= 8.3), termux-tools"
+TERMUX_PKG_DEPENDS="libandroid-support, libiconv, readline (>= 8.3)"
+if [[ "${TERMUXD_MINIMAL_BASH:-false}" != "true" ]]; then
+	TERMUX_PKG_DEPENDS+=", termux-tools"
+fi
 TERMUX_PKG_RECOMMENDS="command-not-found, bash-completion"
 TERMUX_PKG_BREAKS="bash-dev"
 TERMUX_PKG_REPLACES="bash-dev"

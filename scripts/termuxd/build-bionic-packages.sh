@@ -35,6 +35,7 @@ args+=("${build_package_args[@]}")
 echo "Building termuxd bionic packages: ${build_packages[*]}"
 echo "Requested build package mode: ${TERMUXD_BUILD_PACKAGE_MODE}"
 echo "Build jobs: ${TERMUXD_BUILD_JOBS:-build-package default}"
+echo "Minimal bash dependency mode: ${TERMUXD_MINIMAL_BASH}"
 if [[ ${#build_package_args[@]} -gt 0 ]]; then
 	echo "Resolved build package args: ${build_package_args[*]}"
 else
@@ -43,6 +44,8 @@ fi
 
 if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
 	termuxd_prepare_docker_env_args
+	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS "--env TERMUXD_MINIMAL_BASH=${TERMUXD_MINIMAL_BASH}"
+	termuxd_append_arg TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS "--env TERMUXD_MINIMAL_BASH=${TERMUXD_MINIMAL_BASH}"
 	if [[ "${TERMUXD_REBUILD_ROOT_PACKAGES}" == "true" ]]; then
 		env \
 			CONTAINER_NAME="${TERMUXD_CONTAINER_NAME}" \
@@ -58,10 +61,12 @@ if [[ "${TERMUXD_USE_DOCKER}" == "true" ]]; then
 	fi
 	exec env \
 		CONTAINER_NAME="${TERMUXD_CONTAINER_NAME}" \
+		TERMUXD_MINIMAL_BASH="${TERMUXD_MINIMAL_BASH}" \
 		TERMUX_DOCKER_RUN_EXTRA_ARGS="${TERMUXD_EFFECTIVE_DOCKER_RUN_ARGS}" \
 		TERMUX_DOCKER_EXEC_EXTRA_ARGS="${TERMUXD_EFFECTIVE_DOCKER_EXEC_ARGS}" \
 		./scripts/run-docker.sh ./build-package.sh "${args[@]}" "${build_packages[@]}"
 fi
 
 termuxd_clear_built_markers "${build_packages[@]}"
-exec ./build-package.sh "${args[@]}" -o "${TERMUXD_OUTPUT_DIR}" "${build_packages[@]}"
+exec env TERMUXD_MINIMAL_BASH="${TERMUXD_MINIMAL_BASH}" \
+	./build-package.sh "${args[@]}" -o "${TERMUXD_OUTPUT_DIR}" "${build_packages[@]}"
