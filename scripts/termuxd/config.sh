@@ -169,8 +169,7 @@ termuxd_resolve_build_package_args() {
 				termuxd_resolved_args=(-I)
 				echo "Remote APT package index has records; build-package will reuse packages with -I: ${repo_url}"
 			else
-				termuxd_resolved_args=(-F)
-				echo "Remote APT package index is empty or unavailable; build-package will force-build the local dependency closure with -F: ${repo_url}"
+				echo "Remote APT package index is empty or unavailable; build-package will reuse local built markers and build missing dependencies: ${repo_url}"
 			fi
 			;;
 		none|false|off|local)
