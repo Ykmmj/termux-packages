@@ -2,7 +2,8 @@
 set -euo pipefail
 
 TERMUXD_INVOCATION_DIR="${PWD}"
-TERMUXD_BUILD_LOG="${TERMUXD_BUILD_LOG:-${TERMUXD_INVOCATION_DIR}/termuxd-bionic-build-$(date +%Y%m%d-%H%M%S).log}"
+TERMUXD_LOG_DIR="${TERMUXD_LOG_DIR:-${TERMUXD_INVOCATION_DIR}/log}"
+TERMUXD_BUILD_LOG="${TERMUXD_BUILD_LOG:-${TERMUXD_LOG_DIR}/termuxd-bionic-build-$(date +%Y%m%d-%H%M%S).log}"
 mkdir -p "$(dirname "${TERMUXD_BUILD_LOG}")"
 touch "${TERMUXD_BUILD_LOG}"
 echo "Writing build log to ${TERMUXD_BUILD_LOG}"

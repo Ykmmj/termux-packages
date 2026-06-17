@@ -58,8 +58,8 @@ require_equal "${TERMUXD_GLIBC_BUILDER_IMAGE_NAME}" "ghcr.io/termux/package-buil
 require_equal "${TERMUXD_RESET_GLIBC_CONTAINER}" "false" "TERMUXD_RESET_GLIBC_CONTAINER"
 
 for build_script in build-bionic-packages.sh build-glibc-packages.sh; do
-	grep -q 'TERMUXD_INVOCATION_DIR="${PWD}"' "${termuxd_dir}/${build_script}" || {
-		echo "${build_script} must keep build logs in the invocation directory" >&2
+	grep -q 'TERMUXD_LOG_DIR="${TERMUXD_LOG_DIR:-${TERMUXD_INVOCATION_DIR}/log}"' "${termuxd_dir}/${build_script}" || {
+		echo "${build_script} must keep build logs in the invocation log directory" >&2
 		exit 1
 	}
 	grep -q 'tee -a' "${termuxd_dir}/${build_script}" || {
