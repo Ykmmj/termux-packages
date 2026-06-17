@@ -205,7 +205,9 @@ export TERMUXD_RUNTIME="${TERMUXD_RUNTIME_PATH}"
 export PREFIX="${TERMUXD_PREFIX_PATH}"
 export TERMUX_PREFIX="${TERMUXD_PREFIX_PATH}"
 export TMPDIR="${TERMUXD_PREFIX_PATH}/tmp"
-export HOME="\${HOME:-${TERMUXD_RUNTIME_PATH}/home}"
+if [ -z "\${HOME:-}" ] || [ "\${HOME}" = "/" ]; then
+	export HOME="${TERMUXD_RUNTIME_PATH}/home"
+fi
 case ":\${PATH:-}:" in
 	*:"${TERMUXD_PREFIX_PATH}/bin":*) ;;
 	*) export PATH="${TERMUXD_PREFIX_PATH}/bin:\${PATH:-/system/bin}" ;;
@@ -219,7 +221,9 @@ export TERMUXD_RUNTIME="${TERMUXD_RUNTIME_PATH}"
 export PREFIX="${TERMUXD_PREFIX_PATH}"
 export TERMUX_PREFIX="${TERMUXD_PREFIX_PATH}"
 export TMPDIR="${TERMUXD_PREFIX_PATH}/tmp"
-export HOME="\${HOME:-${TERMUXD_RUNTIME_PATH}/home}"
+if [ -z "\${HOME:-}" ] || [ "\${HOME}" = "/" ]; then
+	export HOME="${TERMUXD_RUNTIME_PATH}/home"
+fi
 case ":\${PATH:-}:" in
 	*:"${TERMUXD_PREFIX_PATH}/bin":*) ;;
 	*) export PATH="${TERMUXD_PREFIX_PATH}/bin:\${PATH:-/system/bin}" ;;

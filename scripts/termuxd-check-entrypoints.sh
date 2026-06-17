@@ -145,6 +145,10 @@ grep -q 'runtime/termuxd-shell' "${termuxd_dir}/package-runtime.sh" || {
 	echo "package-runtime.sh must install a termuxd shell launcher" >&2
 	exit 1
 }
+grep -Fq '[ "\${HOME}" = "/" ]' "${termuxd_dir}/package-runtime.sh" || {
+	echo "package-runtime.sh must override Android adb shell HOME=/ with the termuxd runtime home" >&2
+	exit 1
+}
 
 tmp_root="$(mktemp -d)"
 trap 'rm -rf "${tmp_root}"' EXIT
