@@ -105,7 +105,7 @@ require_equal "${resolved_args[*]}" "-I" "auto build mode with available remote 
 
 resolved_args=()
 termuxd_resolve_build_package_args "file://${empty_repo}" "stable" resolved_args
-require_equal "${resolved_args[*]}" "" "auto build mode with empty remote repo"
+require_equal "${resolved_args[*]}" "-F" "auto build mode with empty remote repo"
 
 termuxd_should_seed_glibc_prefix "file://${ready_repo}" "stable" "main" "aarch64" || {
 	echo "glibc seed should run when the remote Packages index is available" >&2
