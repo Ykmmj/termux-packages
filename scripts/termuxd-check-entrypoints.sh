@@ -233,6 +233,7 @@ fi
 make_fake_deb() {
 	local output_dir="$1"
 	local package_name="$2"
+	local depends="${3:-}"
 	local root="${tmp_root}/pkg-${package_name}"
 
 	rm -rf "${root}"
@@ -244,15 +245,20 @@ Architecture: aarch64
 Maintainer: termuxd test <termuxd@example.invalid>
 Description: fake ${package_name}
 EOF
+	if [[ -n "${depends}" ]]; then
+		echo "Depends: ${depends}" >> "${root}/DEBIAN/control"
+	fi
 	printf '%s\n' "${package_name}" > "${root}/data/local/tmp/termuxd/runtime/usr/share/${package_name}/payload"
 	dpkg-deb -b "${root}" "${output_dir}/${package_name}_1.0_aarch64.deb" >/dev/null
 }
 
 make_fake_deb "${packages_dir}" "bash"
+make_fake_deb "${packages_dir}" "apt" "bash"
 make_fake_deb "${packages_dir}" "glibc"
 make_fake_deb "${packages_dir}" "glibc-runner"
 make_fake_deb "${packages_dir}" "attr-glibc"
 make_fake_deb "${packages_dir}" "attr-glibc-static"
+make_fake_deb "${packages_dir}" "make"
 
 if "${termuxd_dir}/publish-apt-pages.sh" "${source_repo}" "${packages_dir}" "apt/bionic" >/dev/null 2>"${tmp_root}/publish.log"; then
 	echo "publish-apt-pages.sh must require explicit PAGES_REMOTE_URL" >&2
@@ -287,8 +293,14 @@ grep -q '^Package: bash$' "${bionic_index}" || {
 	echo "expected bash in bionic repo" >&2
 	exit 1
 }
-if grep -q '^Package: glibc$' "${bionic_index}" || grep -q '^Package: attr-glibc$' "${bionic_index}"; then
-	echo "glibc packages must be filtered from bionic repo" >&2
+grep -q '^Package: apt$' "${bionic_index}" || {
+	echo "expected apt in bionic repo" >&2
+	exit 1
+}
+if grep -q '^Package: glibc$' "${bionic_index}" || \
+	grep -q '^Package: attr-glibc$' "${bionic_index}" || \
+	grep -q '^Package: make$' "${bionic_index}"; then
+	echo "bionic repo must contain only the apt+bash runtime closure" >&2
 	exit 1
 fi
 
